@@ -79,7 +79,7 @@ public class CollisionBoard {
                 range(1, max(max(minX, minY), max(sizeX - 1 - maxX, sizeY - 1 - maxY)))
                         .boxed()
                         .flatMap(range -> getPositionStream(hitBox, minX, minY, maxX, maxY, range))
-        ).peek(p -> System.out.println("x:" + p.getX() + ", y:" + p.getY()))
+        )
                 .filter(p -> fieldCollisions(new LocatedBoundingBox(p, hitBox.getBoundingBox()), entity).findAny()
                         .isEmpty())
                 .findFirst();
@@ -213,11 +213,15 @@ public class CollisionBoard {
                             int highYOther = lowYOther + otherBox.getBoundingBox().getHeight();
                             return
                                     //x collides
-                                    (lowXOther <= highXSelf && highXOther >= highXSelf
-                                             || lowXSelf <= highXOther && highXSelf >= highXOther)
+                                    (
+                                            lowXOther < highXSelf && lowXOther >= lowXSelf
+                                             || lowXSelf < highXOther && lowXSelf >= lowXOther
+                                    )
                                             //y collides
-                                            && (lowYOther <= highYSelf && highYOther >= highYSelf
-                                                        || lowYSelf <= highYOther && highYSelf >= highYOther);
+                                            && (
+                                                    lowYOther < highYSelf && lowYOther >= lowYSelf
+                                                        || lowYSelf < highYOther && lowYSelf >= lowYOther
+                                    );
                         })
                 //prevent self match
         ).filter(e -> e != self);
@@ -296,7 +300,7 @@ public class CollisionBoard {
         if (o.isEmpty()) {
             return false;
         }
-        var hitBox = o.get();
+        var hitBox = new LocatedBoundingBox(move(o.get().getPosition(), direction), o.get().getBoundingBox());
         var minX = hitBox.getPosition().getX();
         var minY = hitBox.getPosition().getY();
         var maxX = minX + hitBox.getBoundingBox().getWidth();
@@ -305,9 +309,9 @@ public class CollisionBoard {
         if (minX < 0 || maxX >= sizeX || minX > maxX || minY < 0 || maxY >= sizeY || minY > maxY) {
             return true;
         }
-        return entity.getHitBox().stream().flatMap(box -> fieldCollisions(
-                new LocatedBoundingBox(move(box.getPosition(), direction), box.getBoundingBox()), entity
-        )).findAny().isPresent();
+        return fieldCollisions(
+                hitBox, entity
+        ).findAny().isPresent();
     }
 
     /**
@@ -350,46 +354,46 @@ public class CollisionBoard {
                 }
                 switch (direction) {
                     case UP, UP_LEFT, UP_RIGHT -> {
-                        if (lowerYBucket != nLowerYBucket) {
+                        if (upperYBucket != nUpperYBucket) {
                             for (int i = lowerXBucket; i <= upperXBucket; i++) {
-                                buckets[i + lowerYBucket * bucketsX].remove(entity);
+                                buckets[i + upperYBucket * bucketsX].remove(entity);
                             }
                         }
                         if (direction == Direction.UP_LEFT && upperXBucket != nUpperXBucket) {
                             for (int i = lowerYBucket; i < upperYBucket; i++) {
                                 buckets[i * bucketsX + upperXBucket].remove(entity);
                             }
-                            if (lowerYBucket == nLowerYBucket) {
-                                buckets[lowerYBucket * bucketsX + upperXBucket].remove(entity);
+                            if (upperYBucket == nUpperYBucket) {
+                                buckets[upperYBucket * bucketsX + upperXBucket].remove(entity);
                             }
                         } else if (direction == Direction.UP_RIGHT && lowerXBucket != nLowerXBucket) {
                             for (int i = lowerYBucket; i < upperYBucket; i++) {
                                 buckets[i * bucketsX + lowerXBucket].remove(entity);
                             }
-                            if (lowerYBucket == nLowerYBucket) {
-                                buckets[lowerYBucket * bucketsX + lowerXBucket].remove(entity);
+                            if (upperYBucket == nUpperYBucket) {
+                                buckets[upperYBucket * bucketsX + lowerXBucket].remove(entity);
                             }
                         }
                     }
                     case DOWN, DOWN_LEFT, DOWN_RIGHT -> {
-                        if (upperYBucket != nUpperYBucket) {
+                        if (lowerYBucket != nLowerYBucket) {
                             for (int i = lowerXBucket; i <= upperXBucket; i++) {
-                                buckets[i + upperYBucket * bucketsX].remove(entity);
+                                buckets[i + lowerYBucket * bucketsX].remove(entity);
                             }
                         }
                         if (direction == Direction.DOWN_LEFT && upperXBucket != nUpperXBucket) {
                             for (int i = lowerYBucket; i < upperYBucket; i++) {
                                 buckets[i * bucketsX + upperXBucket].remove(entity);
                             }
-                            if (upperYBucket == nUpperYBucket) {
-                                buckets[upperYBucket * bucketsX + upperXBucket].remove(entity);
+                            if (lowerYBucket == nLowerYBucket) {
+                                buckets[lowerYBucket * bucketsX + upperXBucket].remove(entity);
                             }
                         } else if (direction == Direction.DOWN_RIGHT && lowerXBucket != nLowerXBucket) {
                             for (int i = lowerYBucket; i < upperYBucket; i++) {
                                 buckets[i * bucketsX + lowerXBucket].remove(entity);
                             }
-                            if (upperYBucket == nUpperYBucket) {
-                                buckets[upperYBucket * bucketsX + lowerXBucket].remove(entity);
+                            if (lowerYBucket == nLowerYBucket) {
+                                buckets[lowerYBucket * bucketsX + lowerXBucket].remove(entity);
                             }
                         }
                     }
@@ -413,46 +417,46 @@ public class CollisionBoard {
                 }
                 switch (direction) {
                     case DOWN, DOWN_LEFT, DOWN_RIGHT -> {
-                        if (lowerYBucket != nLowerYBucket) {
+                        if (upperYBucket != nUpperYBucket) {
                             for (int i = nLowerXBucket; i <= nUpperXBucket; i++) {
-                                buckets[i + nLowerYBucket * bucketsX].add(entity);
+                                buckets[i + nUpperYBucket * bucketsX].add(entity);
                             }
                         }
                         if (direction == Direction.DOWN_RIGHT && upperXBucket != nUpperXBucket) {
                             for (int i = nLowerYBucket; i < nUpperYBucket; i++) {
                                 buckets[i * bucketsX + nUpperXBucket].add(entity);
                             }
-                            if (lowerYBucket == nLowerYBucket) {
-                                buckets[nLowerYBucket * bucketsX + nUpperXBucket].add(entity);
+                            if (upperYBucket == nUpperYBucket) {
+                                buckets[nUpperXBucket * bucketsX + nUpperXBucket].add(entity);
                             }
                         } else if (direction == Direction.DOWN_LEFT && lowerXBucket != nLowerXBucket) {
                             for (int i = nLowerYBucket; i < nUpperYBucket; i++) {
                                 buckets[i * bucketsX + nLowerXBucket].add(entity);
                             }
-                            if (lowerYBucket == nLowerYBucket) {
-                                buckets[nLowerYBucket * bucketsX + nLowerXBucket].add(entity);
+                            if (upperYBucket == nUpperYBucket) {
+                                buckets[nUpperYBucket * bucketsX + nLowerXBucket].add(entity);
                             }
                         }
                     }
                     case UP, UP_LEFT, UP_RIGHT -> {
-                        if (upperYBucket != nUpperYBucket) {
+                        if (lowerYBucket != nLowerYBucket) {
                             for (int i = nLowerXBucket; i <= nUpperXBucket; i++) {
-                                buckets[i + nUpperYBucket * bucketsX].add(entity);
+                                buckets[i + nLowerYBucket * bucketsX].add(entity);
                             }
                         }
                         if (direction == Direction.UP_RIGHT && upperXBucket != nUpperXBucket) {
                             for (int i = nLowerYBucket; i < nUpperYBucket; i++) {
                                 buckets[i * bucketsX + nUpperXBucket].add(entity);
                             }
-                            if (upperYBucket == nUpperYBucket) {
-                                buckets[nUpperYBucket * bucketsX + nUpperXBucket].add(entity);
+                            if (lowerYBucket == nLowerYBucket) {
+                                buckets[nLowerYBucket * bucketsX + nUpperXBucket].add(entity);
                             }
                         } else if (direction == Direction.UP_LEFT && lowerXBucket != nLowerXBucket) {
                             for (int i = nLowerYBucket; i < nUpperYBucket; i++) {
                                 buckets[i * bucketsX + nLowerXBucket].add(entity);
                             }
-                            if (upperYBucket == nUpperYBucket) {
-                                buckets[upperYBucket * bucketsX + lowerXBucket].add(entity);
+                            if (lowerYBucket == nLowerYBucket) {
+                                buckets[lowerYBucket * bucketsX + lowerXBucket].add(entity);
                             }
                         }
                     }
