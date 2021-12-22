@@ -218,6 +218,7 @@ public class CollisionBoard {
                         .filter(other -> {
                             if (other.getHitBox().isEmpty()) {
                                 toRemoveEmpty=true;
+                                return false;
                             }
                             var otherBox = other.getHitBox().get();
                             int lowXOther = otherBox.getPosition().getX();
