@@ -1,6 +1,7 @@
 package pgdp.game;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -51,6 +52,16 @@ public class CollisionBoard {
         return sizeY;
     }
 
+    private void removeEmpty(){
+        if(toRemoveEmpty) {
+            System.err.println("removing empty entity");
+            Arrays.stream(buckets).iterator().forEachRemaining(l -> l.removeIf(e -> e.getHitBox().isEmpty()));
+            toRemoveEmpty=false;
+        }
+
+    }
+    private boolean toRemoveEmpty=false;
+
     /**
      * Fügt ein weiteres Entity zum Board hinzu.
      * Wenn der durch die HitBox belegte Bereich nicht frei ist wird ein neuer Platz gesucht und die Position der
@@ -98,8 +109,10 @@ public class CollisionBoard {
                     buckets[x + y * bucketsX].add(entity);
                 }
             }
+            removeEmpty();
             return true;
         } else {
+            removeEmpty();
             return false;
         }
     }
@@ -204,7 +217,7 @@ public class CollisionBoard {
                 ).flatMap(List::stream)
                         .filter(other -> {
                             if (other.getHitBox().isEmpty()) {
-                                throw new IllegalStateException("contains Entity without hit box");
+                                toRemoveEmpty=true;
                             }
                             var otherBox = other.getHitBox().get();
                             int lowXOther = otherBox.getPosition().getX();
@@ -255,6 +268,7 @@ public class CollisionBoard {
                 }
             }
         });
+        removeEmpty();
     }
 
     /**
@@ -266,11 +280,14 @@ public class CollisionBoard {
      * @return 🧠
      */
     public List<Entity> getCollisions(Entity entity, Direction direction) {
-        return entity.getHitBox().stream().flatMap(hitBox -> fieldCollisions(
+        var r=entity.getHitBox().stream().flatMap(hitBox -> fieldCollisions(
                         new LocatedBoundingBox(move(hitBox.getPosition(), direction), hitBox.getBoundingBox()), entity
                 ))
                 .distinct()
                 .toList();
+        removeEmpty();
+        return r;
+
     }
 
     private Position move(Position p, Direction d) {
@@ -309,9 +326,11 @@ public class CollisionBoard {
         if (minX < 0 || maxX >= sizeX || minX > maxX || minY < 0 || maxY >= sizeY || minY > maxY) {
             return true;
         }
-        return fieldCollisions(
+        var r= fieldCollisions(
                 hitBox, entity
         ).findAny().isPresent();
+        removeEmpty();
+        return r;
     }
 
     /**
@@ -427,7 +446,7 @@ public class CollisionBoard {
                                 buckets[i * bucketsX + nUpperXBucket].add(entity);
                             }
                             if (upperYBucket == nUpperYBucket) {
-                                buckets[nUpperXBucket * bucketsX + nUpperXBucket].add(entity);
+                                buckets[nUpperYBucket * bucketsX + nUpperXBucket].add(entity);
                             }
                         } else if (direction == Direction.DOWN_LEFT && lowerXBucket != nLowerXBucket) {
                             for (int i = nLowerYBucket; i < nUpperYBucket; i++) {
@@ -481,6 +500,7 @@ public class CollisionBoard {
                 hitBox.setPosition(newPosition);
             }
         });
+        removeEmpty();
     }
 
 }
