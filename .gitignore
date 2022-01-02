@@ -82,3 +82,6 @@ nbdist/
 *.iws
 *.iml
 out
+.DS_Store
+.classpath
+.project
