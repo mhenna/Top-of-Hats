@@ -17,4 +17,7 @@ public abstract class Entity {
         this.hitBox = hitBox;
     }
 
+    public abstract boolean visit(Game game);
+
+    public abstract Image getImage();
 }
